@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusGraph AI | Smart PDF Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+
+<body>
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-container">
+                <div class="logo-icon-wrapper">
+                    <i class="fa-solid fa-project-diagram logo-icon"></i>
+                </div>
+                <h2>TokenGraph<span class="text-gradient">AI</span></h2>
+            </div>
+
+            <div class="upload-section">
+                <h3><i class="fa-solid fa-database text-gradient"></i> Knowledge Base</h3>
+                <div class="upload-area" id="drop-zone">
+                    <div class="upload-icon-container">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <p class="upload-title">Drop your PDF here</p>
+                    <p class="upload-subtitle">Maximum file size 50MB</p>
+                    <div class="upload-divider"><span>OR</span></div>
+                    <label class="btn-primary">
+                        <span>Browse Files</span>
+                        <input type="file" id="file-input" accept=".pdf" hidden>
+                    </label>
+                </div>
+                <div id="upload-status" class="status-msg hidden"></div>
+            </div>
+
+            <div class="documents-list">
+                <h3><i class="fa-solid fa-layer-group text-gradient"></i> Active Documents</h3>
+                <ul id="doc-list">
+                    <li class="empty-state">No documents loaded in context</li>
+                </ul>
+            </div>
+
+            <div class="architecture-info glass-panel-inner">
+                <h4>System Architecture</h4>
+                <div class="arch-timeline">
+                    <div class="arch-step">
+                        <div class="step-dot"></div>
+                        <div class="step-text">PDF Extraction</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="step-dot"></div>
+                        <div class="step-text">Entity & Relation Mapping</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="step-dot"></div>
+                        <div class="step-text">TigerGraph Storage</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="step-dot"></div>
+                        <div class="step-text">Graph-Based Retrieval</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="step-dot"></div>
+                        <div class="step-text">LLM Synthesis</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Graph Visualizer -->
+            <section class="graph-section glass-panel">
+                <div class="section-header">
+                    <div class="header-title">
+                        <div class="icon-box"><i class="fa-solid fa-network-wired"></i></div>
+                        <div>
+                            <h3>Knowledge Graph Visualizer</h3>
+                            <p class="header-subtitle">Real-time mapping of extracted entities and relationships</p>
+                        </div>
+                    </div>
+                    <button id="refresh-graph" class="btn-icon" title="Refresh Graph">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+                <div id="network-container" class="network-canvas">
+                    <div class="empty-graph-msg">
+                        <i class="fa-solid fa-diagram-project"></i>
+                        <p>Awaiting data ingestion to construct knowledge graph</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison Dashboard -->
+            <section class="dashboard-section glass-panel">
+                <div class="chat-header">
+                    <div class="header-title">
+                        <div class="icon-box ai-icon-box"><i class="fa-solid fa-chart-simple"></i></div>
+                        <div>
+                            <h3>Pipeline Comparison Dashboard</h3>
+                            <p class="header-subtitle">Evaluate LLM-Only vs Basic RAG vs GraphRAG performance</p>
+                        </div>
+                    </div>
+                    <div class="pulse-indicator">
+                        <span class="pulse-dot"></span> System Online
+                    </div>
+                </div>
+
+                <div class="dashboard-content" id="dashboard-content">
+                    <div class="empty-dashboard-msg" id="empty-dashboard">
+                        <div class="message ai" style="margin: 0 auto; max-width: 100%;">
+                            <div class="avatar ai-avatar"><i class="fa-solid fa-robot"></i></div>
+                            <div class="message-content" style="flex: 1;">
+                                <p>Greetings. I am Nexus, your Evaluation Assistant. Please upload a PDF to initialize
+                                    the knowledge graph. Once complete, you may run a query to benchmark the three
+                                    pipelines side-by-side.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="loading-dashboard hidden" id="loading-dashboard">
+                        <div class="pulse-ring"></div>
+                        <p>Running pipelines side-by-side...</p>
+                    </div>
+
+                    <div class="comparison-grid hidden" id="comparison-grid">
+                        <!-- Card 1: LLM-Only -->
+                        <div class="pipeline-card">
+                            <div class="pipeline-header">
+                                <h4><i class="fa-solid fa-brain"></i> LLM-Only</h4>
+                                <span class="badge error">Baseline</span>
+                            </div>
+                            <div class="pipeline-answer-box">
+                                <p class="pipeline-answer" id="llm-answer"></p>
+                            </div>
+                            <div class="metrics-grid">
+                                <div class="metric-box">
+                                    <span class="metric-label">Tokens</span>
+                                    <span class="metric-value" id="llm-tokens">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Latency</span>
+                                    <span class="metric-value" id="llm-latency">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Cost</span>
+                                    <span class="metric-value" id="llm-cost">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Accuracy</span>
+                                    <span class="metric-value metric-fail" id="llm-accuracy">-</span>
+                                </div>
+                            </div>
+                            <div class="bert-score-container">
+                                <div class="bert-header">
+                                    <span class="bert-label">BERTScore</span>
+                                    <span class="bert-value" id="llm-bert-val">0.0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill error-fill" id="llm-bert-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Basic RAG -->
+                        <div class="pipeline-card">
+                            <div class="pipeline-header">
+                                <h4><i class="fa-solid fa-vector-square"></i> Basic RAG</h4>
+                                <span class="badge warning">Standard</span>
+                            </div>
+                            <div class="pipeline-answer-box">
+                                <p class="pipeline-answer" id="rag-answer"></p>
+                            </div>
+                            <div class="metrics-grid">
+                                <div class="metric-box">
+                                    <span class="metric-label">Tokens</span>
+                                    <span class="metric-value" id="rag-tokens">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Latency</span>
+                                    <span class="metric-value" id="rag-latency">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Cost</span>
+                                    <span class="metric-value" id="rag-cost">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Accuracy</span>
+                                    <span class="metric-value metric-warn" id="rag-accuracy">-</span>
+                                </div>
+                            </div>
+                            <div class="bert-score-container">
+                                <div class="bert-header">
+                                    <span class="bert-label">BERTScore</span>
+                                    <span class="bert-value" id="rag-bert-val">0.0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill warning-fill" id="rag-bert-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: GraphRAG -->
+                        <div class="pipeline-card graph-rag-card">
+                            <div class="pipeline-header">
+                                <h4><i class="fa-solid fa-project-diagram"></i> GraphRAG</h4>
+                                <span class="badge success">TigerGraph</span>
+                            </div>
+                            <div class="pipeline-answer-box">
+                                <p class="pipeline-answer" id="graph-answer"></p>
+                            </div>
+                            <div class="metrics-grid">
+                                <div class="metric-box">
+                                    <span class="metric-label">Tokens</span>
+                                    <span class="metric-value" id="graph-tokens">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Latency</span>
+                                    <span class="metric-value" id="graph-latency">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Cost</span>
+                                    <span class="metric-value" id="graph-cost">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Accuracy</span>
+                                    <span class="metric-value metric-pass" id="graph-accuracy">-</span>
+                                </div>
+                            </div>
+                            <div class="bert-score-container">
+                                <div class="bert-header">
+                                    <span class="bert-label">BERTScore</span>
+                                    <span class="bert-value" id="graph-bert-val">0.0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill success-fill" id="graph-bert-fill" style="width: 0%">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="context-box hidden" id="graph-context-box">
+                                <div class="context-title"><i class="fa-solid fa-diagram-project"></i> Multi-Hop Context
+                                    Retrieved</div>
+                                <div id="graph-context-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-wrapper">
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input"
+                            placeholder="Enter a query to evaluate across pipelines... (e.g., 'What are neural networks?')"
+                            disabled>
+                        <button id="send-btn" class="btn-send" disabled>
+                            <i class="fa-solid fa-bolt"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
