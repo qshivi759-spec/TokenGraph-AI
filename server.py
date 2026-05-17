@@ -20,7 +20,7 @@ llm_model = genai.GenerativeModel('gemini-1.5-flash')
 chroma_client = chromadb.Client()
 try:
     vector_collection = chroma_client.get_collection(name="pdf_chunks")
-except:
+except Exception:
     vector_collection = chroma_client.create_collection(name="pdf_chunks")
 
 app = FastAPI(title="Smart PDF Knowledge Graph Chatbot")
@@ -229,8 +229,7 @@ async def get_graph():
     return MOCK_GRAPH
 
 # Mount static files
-os.makedirs("public", exist_ok=True)
-app.mount("/", StaticFiles(directory="public", html=True), name="public")
+app.mount("/", StaticFiles(directory=".", html=True), name="public")
 
 if __name__ == "__main__":
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)
