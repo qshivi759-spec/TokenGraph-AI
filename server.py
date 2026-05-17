@@ -18,19 +18,35 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import PyPDF2
 import uvicorn
-import chromadb
 import google.generativeai as genai
 
 # Setup Gemini API (Requires GOOGLE_API_KEY environment variable)
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY", "your-api-key"))
 llm_model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Initialize ChromaDB for Phase 1 (Baseline RAG)
-chroma_client = chromadb.Client()
+# Initialize ChromaDB for Phase 1 (Baseline RAG) with Fail-safe
+class MockVectorCollection:
+    def __init__(self):
+        self.data = []
+    def add(self, documents, metadatas, ids):
+        for d, m, i in zip(documents, metadatas, ids):
+            self.data.append({"document": d, "metadata": m, "id": i})
+    def query(self, query_texts, n_results, where):
+        docs = [item["document"] for item in self.data if item["metadata"].get("doc_id") == where.get("doc_id")]
+        return {"documents": [docs[:n_results]]}
+
 try:
-    vector_collection = chroma_client.get_collection(name="pdf_chunks")
-except Exception:
-    vector_collection = chroma_client.create_collection(name="pdf_chunks")
+    import chromadb
+    chroma_client = chromadb.Client()
+    try:
+        vector_collection = chroma_client.get_collection(name="pdf_chunks")
+    except Exception:
+        vector_collection = chroma_client.create_collection(name="pdf_chunks")
+    print("ChromaDB initialized successfully.")
+except Exception as e:
+    print(f"ChromaDB failed to initialize. Using MockVectorCollection. Error: {e}")
+    vector_collection = MockVectorCollection()
+
 
 app = FastAPI(title="Smart PDF Knowledge Graph Chatbot")
 
@@ -238,7 +254,10 @@ async def get_graph():
     return MOCK_GRAPH
 
 # Mount static files
-app.mount("/", StaticFiles(directory=".", html=True), name="public")
+try:
+    app.mount("/", StaticFiles(directory=".", html=True), name="public")
+except Exception as e:
+    print(f"Warning: Could not mount StaticFiles. This is expected on Vercel. Error: {e}")
 
 if __name__ == "__main__":
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)
